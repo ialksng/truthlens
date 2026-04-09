@@ -5,63 +5,118 @@ export const analyzeArticle = async (req, res) => {
     const { title, description, source } = req.body;
 
     if (!title) {
-      return res.status(400).json({ message: "Article title is required for analysis." });
-    }
-
-    // Initialize Gemini
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    // Strict prompt to force JSON output
-    const prompt = `
-      You are an expert journalist and fact-checker. Analyze the following news article snippet.
-      
-      Title: "${title}"
-      Snippet/Description: "${description || 'N/A'}"
-      Source: "${source || 'Unknown'}"
-
-      Evaluate it for credibility, clickbait, bias, and emotional tone based ONLY on the provided text and your knowledge of the source's general reputation.
-
-      Respond ONLY with a valid, raw JSON object matching exactly this structure (no markdown formatting, no \`\`\`json blocks):
-      {
-        "summary": "A concise 2-sentence summary of what the article is claiming.",
-        "credibilityScore": <number between 0-100>,
-        "clickbaitLevel": "<Low | Medium | High>",
-        "biasLevel": "<Low | Medium | High>",
-        "emotionalTone": "<Neutral | Sensationalist | Fear-mongering | Angry | Optimistic>",
-        "explanation": "A 2-3 sentence explanation justifying these scores based on the language used and the source."
-      }
-    `;
-
-    const result = await model.generateContent(prompt);
-    let responseText = result.response.text();
-
-    // 1. Log the raw response to the backend terminal so we can see what Gemini is actually saying!
-    console.log("Raw Gemini Response:", responseText);
-
-    // 2. Aggressively clean the response of markdown blocks just in case Gemini disobeys instructions
-    responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-
-    try {
-      // 3. Try to parse the cleaned text into a Javascript Object
-      const analysisData = JSON.parse(responseText);
-      res.status(200).json(analysisData);
-      
-    } catch (parseError) {
-      // If it fails to parse, log it to the backend terminal
-      console.error("Failed to parse Gemini JSON. Raw text was:", responseText);
-      return res.status(500).json({ 
-        message: "AI returned an invalid format. Please try again.",
-        error: "JSON Parsing Error"
+      return res.status(400).json({
+        message: "Article title is required for analysis."
       });
     }
 
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        temperature: 0.2,
+        topP: 0.8,
+        topK: 40,
+        response_mime_type: "application/json",
+        maxOutputTokens: 500
+      }
+    });
+
+    const prompt = `
+Return ONLY a valid JSON object.
+Do NOT include markdown, code blocks, explanations, or extra text.
+
+Required JSON format:
+{
+  "summary": "string",
+  "credibilityScore": 0,
+  "clickbaitLevel": "Low | Medium | High",
+  "biasLevel": "Low | Medium | High",
+  "emotionalTone": "Neutral | Sensationalist | Fear-mongering | Angry | Optimistic",
+  "explanation": "string"
+}
+
+Task:
+Analyze the following news article snippet for credibility, clickbait, bias, and emotional tone.
+Base your judgment ONLY on:
+1. the provided title/description
+2. general reputation of the source if known
+
+Article:
+Title: "${title}"
+Description: "${description || "N/A"}"
+Source: "${source || "Unknown"}"
+`;
+
+    const result = await model.generateContent(prompt);
+    let responseText = result.response.text().trim();
+
+    console.log("Raw Gemini Response:", responseText);
+
+    // Remove accidental markdown if Gemini misbehaves
+    responseText = responseText
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim();
+
+    let analysisData;
+
+    try {
+      analysisData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("Initial JSON parse failed:", responseText);
+
+      // Fallback: try extracting JSON object from noisy output
+      const match = responseText.match(/\{[\s\S]*\}/);
+      if (!match) {
+        return res.status(500).json({
+          message: "AI returned invalid JSON format.",
+          error: "JSON Parsing Error"
+        });
+      }
+
+      try {
+        analysisData = JSON.parse(match[0]);
+      } catch (fallbackError) {
+        console.error("Fallback JSON parse also failed:", match[0]);
+        return res.status(500).json({
+          message: "AI returned malformed JSON.",
+          error: "JSON Parsing Error"
+        });
+      }
+    }
+
+    // Optional safety validation
+    const safeResponse = {
+      summary: analysisData.summary || "No summary available.",
+      credibilityScore: Number(analysisData.credibilityScore) || 50,
+      clickbaitLevel: ["Low", "Medium", "High"].includes(analysisData.clickbaitLevel)
+        ? analysisData.clickbaitLevel
+        : "Medium",
+      biasLevel: ["Low", "Medium", "High"].includes(analysisData.biasLevel)
+        ? analysisData.biasLevel
+        : "Medium",
+      emotionalTone: [
+        "Neutral",
+        "Sensationalist",
+        "Fear-mongering",
+        "Angry",
+        "Optimistic"
+      ].includes(analysisData.emotionalTone)
+        ? analysisData.emotionalTone
+        : "Neutral",
+      explanation: analysisData.explanation || "No explanation provided."
+    };
+
+    return res.status(200).json(safeResponse);
+
   } catch (error) {
-    // This catches errors like Missing API Key, Network issues with Google, etc.
     console.error("AI Analysis Error:", error);
-    res.status(500).json({ 
+
+    return res.status(500).json({
       message: "Failed to analyze article.",
-      error: error.message 
+      error: error.message
     });
   }
 };
