@@ -8,9 +8,11 @@ export const analyzeArticle = async (req, res) => {
       return res.status(400).json({ message: "Article title is required for analysis." });
     }
 
+    // Initialize Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
+    // Strict prompt to force JSON output
     const prompt = `
       You are an expert journalist and fact-checker. Analyze the following news article snippet.
       
@@ -34,12 +36,28 @@ export const analyzeArticle = async (req, res) => {
     const result = await model.generateContent(prompt);
     let responseText = result.response.text();
 
-    responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    // 1. Log the raw response to the backend terminal so we can see what Gemini is actually saying!
+    console.log("Raw Gemini Response:", responseText);
 
-    const analysisData = JSON.parse(responseText);
+    // 2. Aggressively clean the response of markdown blocks just in case Gemini disobeys instructions
+    responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
-    res.status(200).json(analysisData);
+    try {
+      // 3. Try to parse the cleaned text into a Javascript Object
+      const analysisData = JSON.parse(responseText);
+      res.status(200).json(analysisData);
+      
+    } catch (parseError) {
+      // If it fails to parse, log it to the backend terminal
+      console.error("Failed to parse Gemini JSON. Raw text was:", responseText);
+      return res.status(500).json({ 
+        message: "AI returned an invalid format. Please try again.",
+        error: "JSON Parsing Error"
+      });
+    }
+
   } catch (error) {
+    // This catches errors like Missing API Key, Network issues with Google, etc.
     console.error("AI Analysis Error:", error);
     res.status(500).json({ 
       message: "Failed to analyze article.",
