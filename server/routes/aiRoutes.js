@@ -1,5 +1,5 @@
 import express from "express";
-import { analyzeArticle } from "../controllers/aiController.js";
+import { analyzeArticle, compareArticles } from "../controllers/aiController.js";
 import protect from "../middleware/authMiddleware.js";
 
 const router = express.Router();
