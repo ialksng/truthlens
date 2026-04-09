@@ -63,26 +63,10 @@ Source: "${source || "Unknown"}"
 
     try {
       analysisData = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("Initial JSON parse failed:", responseText);
-
+    } catch {
       const match = responseText.match(/\{[\s\S]*\}/);
-      if (!match) {
-        return res.status(500).json({
-          message: "AI returned invalid JSON format.",
-          error: "JSON Parsing Error"
-        });
-      }
-
-      try {
-        analysisData = JSON.parse(match[0]);
-      } catch (fallbackError) {
-        console.error("Fallback JSON parse also failed:", match[0]);
-        return res.status(500).json({
-          message: "AI returned malformed JSON.",
-          error: "JSON Parsing Error"
-        });
-      }
+      if (!match) throw new Error("Invalid JSON returned by AI");
+      analysisData = JSON.parse(match[0]);
     }
 
     const safeResponse = {
@@ -103,13 +87,28 @@ Source: "${source || "Unknown"}"
       ].includes(analysisData.emotionalTone)
         ? analysisData.emotionalTone
         : "Neutral",
-      explanation: analysisData.explanation || "No explanation provided."
+      explanation: analysisData.explanation || "No explanation provided.",
+      aiAvailable: true
     };
 
     return res.status(200).json(safeResponse);
 
   } catch (error) {
     console.error("AI Analysis Error:", error);
+
+    // Gemini quota / API fallback
+    if (error.status === 429) {
+      return res.status(200).json({
+        summary: "AI analysis is temporarily unavailable due to usage limits.",
+        credibilityScore: 50,
+        clickbaitLevel: "Medium",
+        biasLevel: "Medium",
+        emotionalTone: "Neutral",
+        explanation:
+          "The AI service is currently rate-limited or quota-exceeded. Please try again later.",
+        aiAvailable: false
+      });
+    }
 
     return res.status(500).json({
       message: "Failed to analyze article.",
