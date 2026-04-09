@@ -18,7 +18,10 @@ app.use(express.json());
 
 // API routes
 app.use("/api/auth", authRoutes);
+app.use("/projects/truthlens/api/auth", authRoutes);
+
 app.use("/api/bookmarks", bookmarkRoutes);
+app.use("/projects/truthlens/api/bookmarks", bookmarkRoutes);
 
 app.get("/api", (req, res) => {
   res.send("TruthLens API is running...");
