@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import SummaryBox from "../components/SummaryBox";
 import CredibilityBox from "../components/CredibilityBox";
 import { saveBookmark } from "../services/bookmarkApi";
@@ -18,12 +18,28 @@ function ArticleDetails() {
   const [aiError, setAiError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const fetchAnalysis = async () => {
-    if (!article) return;
+  if (!article) {
+    return (
+      <div className="p-10 text-center text-slate-400">
+        No article selected.
+      </div>
+    );
+  }
 
+  const articleKey = encodeURIComponent(article?.link || article?.title || "article");
+
+  const fetchAnalysis = async () => {
     if (!isLoggedIn()) {
       setAiError("Please log in to unlock TruthLens AI analysis.");
       setAiAnalysis(null);
+      return;
+    }
+
+    // 1. Check local cache first
+    const cached = localStorage.getItem(`analysis_${articleKey}`);
+    if (cached) {
+      setAiAnalysis(JSON.parse(cached));
+      setAiError("");
       return;
     }
 
@@ -34,6 +50,9 @@ function ArticleDetails() {
     try {
       const result = await analyzeArticleData(article);
       setAiAnalysis(result);
+
+      // 2. Save to localStorage cache
+      localStorage.setItem(`analysis_${articleKey}`, JSON.stringify(result));
     } catch (err) {
       setAiError(
         err.response?.data?.message ||
@@ -44,18 +63,6 @@ function ArticleDetails() {
       setLoadingAi(false);
     }
   };
-
-  useEffect(() => {
-    fetchAnalysis();
-  }, [article]);
-
-  if (!article) {
-    return (
-      <div className="p-10 text-center text-slate-400">
-        No article selected.
-      </div>
-    );
-  }
 
   const handleSave = async () => {
     if (!isLoggedIn()) {
@@ -123,6 +130,14 @@ function ArticleDetails() {
             >
               {saving ? "Saving..." : "Save Article"}
             </button>
+
+            <button
+              onClick={fetchAnalysis}
+              disabled={loadingAi}
+              className="rounded-xl bg-violet-500 px-6 py-3 font-semibold text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loadingAi ? "Analyzing..." : "Analyze with TruthLens AI"}
+            </button>
           </div>
         </div>
       </div>
@@ -141,7 +156,9 @@ function ArticleDetails() {
           </div>
         ) : aiError ? (
           <div className="col-span-2 rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-center">
-            <p className="text-lg font-semibold text-red-300">AI Analysis Unavailable</p>
+            <p className="text-lg font-semibold text-red-300">
+              AI Analysis Unavailable
+            </p>
             <p className="mt-2 text-sm text-red-200/80">{aiError}</p>
 
             {isLoggedIn() && (
@@ -155,7 +172,6 @@ function ArticleDetails() {
           </div>
         ) : aiAnalysis ? (
           <>
-            {/* Warning if backend returned fallback */}
             {!aiAnalysis.aiAvailable && (
               <div className="col-span-2 rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-5 text-yellow-200">
                 <p className="font-semibold">Limited AI Response</p>
@@ -171,7 +187,7 @@ function ArticleDetails() {
           </>
         ) : (
           <div className="col-span-2 rounded-2xl border border-slate-800 bg-slate-900 p-8 text-center text-slate-400">
-            No AI analysis available yet.
+            Click <span className="font-semibold text-violet-300">Analyze with TruthLens AI</span> to generate an AI summary and credibility breakdown.
           </div>
         )}
       </div>

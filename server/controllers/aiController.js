@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import ArticleAnalysis from "../models/ArticleAnalysis.js";
 
 export const analyzeArticle = async (req, res) => {
   try {
-    const { title, description, source } = req.body;
+    const { title, description, source, link } = req.body;
 
     if (!title) {
       return res.status(400).json({
@@ -10,24 +11,40 @@ export const analyzeArticle = async (req, res) => {
       });
     }
 
+    // Create unique article key
+    const articleKey = link || title.trim().toLowerCase();
+
+    // 1. CHECK DATABASE CACHE FIRST
+    const existingAnalysis = await ArticleAnalysis.findOne({ articleKey });
+
+    if (existingAnalysis) {
+      console.log("Returning cached AI analysis from MongoDB");
+
+      return res.status(200).json({
+        summary: existingAnalysis.summary,
+        credibilityScore: existingAnalysis.credibilityScore,
+        clickbaitLevel: existingAnalysis.clickbaitLevel,
+        biasLevel: existingAnalysis.biasLevel,
+        emotionalTone: existingAnalysis.emotionalTone,
+        explanation: existingAnalysis.explanation,
+        aiAvailable: existingAnalysis.aiAvailable,
+        cached: true
+      });
+    }
+
+    // 2. IF NOT FOUND, CALL GEMINI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      generationConfig: {
-        temperature: 0.2,
-        topP: 0.8,
-        topK: 40,
-        responseMimeType: "application/json",
-        maxOutputTokens: 500
-      }
-    });
+    const MODELS = [
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash",
+      "gemini-2.0-flash-lite",
+      "gemini-2.0-flash"
+    ];
 
     const prompt = `
 Return ONLY a valid JSON object.
-Do NOT include markdown, code blocks, explanations, or extra text.
 
-Required JSON format:
 {
   "summary": "string",
   "credibilityScore": 0,
@@ -37,22 +54,38 @@ Required JSON format:
   "explanation": "string"
 }
 
-Task:
-Analyze the following news article snippet for credibility, clickbait, bias, and emotional tone.
-Base your judgment ONLY on:
-1. the provided title/description
-2. general reputation of the source if known
-
-Article:
+Analyze this news article:
 Title: "${title}"
 Description: "${description || "N/A"}"
 Source: "${source || "Unknown"}"
 `;
 
-    const result = await model.generateContent(prompt);
-    let responseText = result.response.text().trim();
+    let result;
+    let lastError;
 
-    console.log("Raw Gemini Response:", responseText);
+    for (const modelName of MODELS) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            temperature: 0.2,
+            responseMimeType: "application/json",
+            maxOutputTokens: 500
+          }
+        });
+
+        result = await model.generateContent(prompt);
+        console.log(`Gemini success with model: ${modelName}`);
+        break;
+      } catch (err) {
+        console.error(`Gemini failed with ${modelName}:`, err.message);
+        lastError = err;
+      }
+    }
+
+    if (!result) throw lastError;
+
+    let responseText = result.response.text().trim();
 
     responseText = responseText
       .replace(/```json/gi, "")
@@ -88,25 +121,39 @@ Source: "${source || "Unknown"}"
         ? analysisData.emotionalTone
         : "Neutral",
       explanation: analysisData.explanation || "No explanation provided.",
-      aiAvailable: true
+      aiAvailable: true,
+      cached: false
     };
 
-    return res.status(200).json(safeResponse);
+    // 3. SAVE TO MONGODB CACHE
+    await ArticleAnalysis.create({
+      articleKey,
+      title,
+      source: source || "Unknown",
+      summary: safeResponse.summary,
+      credibilityScore: safeResponse.credibilityScore,
+      clickbaitLevel: safeResponse.clickbaitLevel,
+      biasLevel: safeResponse.biasLevel,
+      emotionalTone: safeResponse.emotionalTone,
+      explanation: safeResponse.explanation,
+      aiAvailable: safeResponse.aiAvailable
+    });
 
+    return res.status(200).json(safeResponse);
   } catch (error) {
     console.error("AI Analysis Error:", error);
 
-    // Gemini quota / API fallback
-    if (error.status === 429) {
+    if (error.status === 429 || error.status === 404) {
       return res.status(200).json({
-        summary: "AI analysis is temporarily unavailable due to usage limits.",
+        summary: "AI analysis is temporarily unavailable due to API limits or model availability.",
         credibilityScore: 50,
         clickbaitLevel: "Medium",
         biasLevel: "Medium",
         emotionalTone: "Neutral",
         explanation:
-          "The AI service is currently rate-limited or quota-exceeded. Please try again later.",
-        aiAvailable: false
+          "TruthLens AI could not complete a full analysis right now. Please try again later.",
+        aiAvailable: false,
+        cached: false
       });
     }
 
