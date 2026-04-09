@@ -1,3 +1,5 @@
+import React from "react";
+
 function CredibilityBox({ analysis }) {
   const score = Number(analysis?.credibilityScore ?? 78);
   const clickbait = analysis?.clickbaitLevel || "Medium";
@@ -5,7 +7,7 @@ function CredibilityBox({ analysis }) {
   const tone = analysis?.emotionalTone || "Neutral";
   const explanation =
     analysis?.explanation ||
-    "This article appears reasonably credible, but some claims may require verification.";
+    "This article appears reasonably credible, but some claims may require additional verification.";
 
   const getScoreColor = (score) => {
     if (score >= 75) return "text-emerald-400";
@@ -19,7 +21,7 @@ function CredibilityBox({ analysis }) {
     return "bg-red-400";
   };
 
-  const getRiskLabel = () => {
+  const getRiskLabel = (score) => {
     if (score >= 75) return "LOW RISK";
     if (score >= 50) return "MODERATE RISK";
     return "HIGH RISK";
@@ -28,7 +30,20 @@ function CredibilityBox({ analysis }) {
   const getBadgeStyle = (value, type) => {
     const lower = value.toLowerCase();
 
-    if (lower === "low" || lower === "neutral")
+    if (type === "tone") {
+      if (lower === "neutral")
+        return "bg-cyan-500/15 text-cyan-300 border-cyan-500/20";
+      if (lower === "optimistic")
+        return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
+      if (lower === "sensationalist")
+        return "bg-orange-500/15 text-orange-300 border-orange-500/20";
+      if (lower === "fear-mongering")
+        return "bg-red-500/15 text-red-300 border-red-500/20";
+      if (lower === "angry")
+        return "bg-rose-500/15 text-rose-300 border-rose-500/20";
+    }
+
+    if (lower === "low")
       return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
 
     if (lower === "medium" || lower === "balanced")
@@ -39,13 +54,10 @@ function CredibilityBox({ analysis }) {
 
   return (
     <div className="rounded-[2rem] border border-slate-800 bg-slate-900/40 p-8 backdrop-blur-xl">
-
-      {/* HEADER */}
       <h2 className="mb-8 text-xs font-black uppercase tracking-[0.3em] text-slate-500">
         // AI_CREDIBILITY_REPORT
       </h2>
 
-      {/* SCORE BLOCK */}
       <div className="mb-10 rounded-2xl border border-slate-700 bg-slate-950 p-6 shadow-inner">
         <div className="flex items-end justify-between mb-4">
           <div>
@@ -53,12 +65,12 @@ function CredibilityBox({ analysis }) {
               Confidence Index
             </p>
 
-            <p className={`text-6xl font-black ${getScoreColor(score)}`}>
+            <p className={`text-6xl font-black tracking-tighter ${getScoreColor(score)}`}>
               {score}%
             </p>
 
             <p className="text-xs text-slate-400 mt-1">
-              {getRiskLabel()}
+              {getRiskLabel(score)}
             </p>
           </div>
 
@@ -67,14 +79,13 @@ function CredibilityBox({ analysis }) {
           </span>
         </div>
 
-        {/* SEGMENTED BAR */}
         <div className="flex gap-1.5">
           {[...Array(20)].map((_, i) => (
             <div
               key={i}
               className={`h-3 flex-1 rounded-sm transition-all duration-700 ${
                 i < score / 5
-                  ? `${getScoreBarColor(score)} shadow-[0_0_6px_rgba(16,185,129,0.6)]`
+                  ? `${getScoreBarColor(score)} shadow-[0_0_6px_rgba(16,185,129,0.5)]`
                   : "bg-slate-800"
               }`}
             />
@@ -82,7 +93,6 @@ function CredibilityBox({ analysis }) {
         </div>
       </div>
 
-      {/* METRICS */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           { label: "Bias", value: bias, type: "bias" },
@@ -109,7 +119,6 @@ function CredibilityBox({ analysis }) {
         ))}
       </div>
 
-      {/* AI EXPLANATION */}
       <div className="mt-8 rounded-xl border-l-4 border-cyan-500 bg-slate-950 p-5">
         <p className="text-[10px] font-bold text-cyan-400 uppercase mb-2">
           AI Reasoning Engine
@@ -120,10 +129,14 @@ function CredibilityBox({ analysis }) {
         </p>
       </div>
 
-      {/* 🔥 NEW: ACTION BUTTON */}
-      <button className="mt-6 w-full rounded-xl bg-cyan-500/10 border border-cyan-500/30 py-3 text-sm font-bold text-cyan-300 hover:bg-cyan-500/20 transition">
+      <button
+        onClick={() => alert("Detailed AI analysis coming soon 🚀")}
+        className="mt-6 w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 py-3 text-sm font-bold text-cyan-300 hover:bg-cyan-500/20 transition"
+      >
         Explain in Detail →
       </button>
     </div>
   );
 }
+
+export default CredibilityBox;
