@@ -5,13 +5,8 @@ import Loader from "../components/Loader";
 import { fetchNewsByQuery } from "../services/newsService";
 
 const categories = [
-  "technology",
-  "business",
-  "sports",
-  "health",
-  "science",
-  "entertainment",
-  "politics",
+  "technology", "business", "sports", "health", 
+  "science", "entertainment", "politics",
 ];
 
 function Home() {
@@ -25,13 +20,8 @@ function Home() {
     try {
       setLoading(true);
       setError("");
-
       const data = await fetchNewsByQuery(query);
-
-      if (!data.length) {
-        setError("No articles found for this topic.");
-      }
-
+      if (!data.length) setError("No articles found for this topic.");
       setArticles(data);
     } catch (err) {
       console.error(err);
@@ -41,7 +31,6 @@ function Home() {
     }
   };
 
-  // 🔥 FIXED: auto-fetch when category changes
   useEffect(() => {
     fetchNews(activeCategory);
   }, [activeCategory]);
@@ -52,48 +41,51 @@ function Home() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
+    <div className="mx-auto max-w-7xl px-6 pb-20 pt-32">
       
-      {/* 🚀 High-Tech Hero */}
-      <section className="relative mb-16 overflow-hidden rounded-[2.5rem] border border-slate-800 bg-slate-900 px-8 py-16 shadow-2xl">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-[100px]" />
-        <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-blue-500/10 blur-[100px]" />
+      {/* 🚀 Hero Section */}
+      <section className="relative mb-16 overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/40 px-8 py-20 shadow-2xl backdrop-blur-xl sm:px-16">
+        {/* Animated Background Orbs */}
+        <div className="absolute -top-32 -right-32 h-96 w-96 animate-pulse rounded-full bg-cyan-500/20 blur-[100px] duration-10000" />
+        <div className="absolute -bottom-32 -left-32 h-96 w-96 animate-pulse rounded-full bg-indigo-500/20 blur-[100px] duration-10000 delay-1000" />
         
-        <div className="relative z-10 mx-auto max-w-4xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/5 px-4 py-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
-            <span className="text-xs font-bold uppercase tracking-widest text-cyan-400">
+        <div className="relative z-10 mx-auto max-w-4xl text-center animate-float">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 backdrop-blur-md">
+            <div className="h-2 w-2 animate-ping rounded-full bg-cyan-400" />
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
               Neural Engine Online
             </span>
           </div>
           
-          <h1 className="bg-gradient-to-b from-white to-slate-400 bg-clip-text text-6xl font-black tracking-tighter text-transparent md:text-8xl">
-            TruthLens
+          <h1 className="text-gradient mb-6 text-6xl font-black tracking-tighter md:text-8xl">
+            Decode the <span className="text-gradient-cyan">Truth</span>
           </h1>
           
-          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-slate-400">
-            Decoding global news through AI. Detect bias, clickbait, and credibility instantly.
+          <p className="mx-auto mt-6 max-w-2xl text-lg font-light leading-relaxed text-slate-400 md:text-xl">
+            Navigate global news through the lens of AI. Instantly detect bias, expose clickbait, and verify credibility.
           </p>
         </div>
       </section>
 
       {/* 🔍 Search */}
-      <SearchBar
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        onSearch={() => fetchNews(searchTerm)}
-      />
+      <div className="mx-auto mb-12 max-w-2xl">
+        <SearchBar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onSearch={() => fetchNews(searchTerm)}
+        />
+      </div>
 
-      {/* 🧠 Category HUD */}
-      <div className="mb-10 flex flex-wrap justify-center gap-3">
+      {/* 🎛️ Category HUD */}
+      <div className="mb-16 flex flex-wrap justify-center gap-4">
         {categories.map((category) => (
           <button
             key={category}
             onClick={() => handleCategoryClick(category)}
-            className={`group relative rounded-xl px-6 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
+            className={`group relative rounded-full px-6 py-2.5 text-xs font-bold uppercase tracking-widest transition-all duration-300 ${
               activeCategory === category
-                ? "bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
-                : "border border-slate-800 bg-slate-900/50 text-slate-400 hover:border-cyan-500/50 hover:text-white"
+                ? "bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.5)] scale-105"
+                : "border border-slate-700/50 bg-slate-800/30 text-slate-400 hover:border-cyan-500/50 hover:bg-cyan-500/10 hover:text-cyan-300"
             }`}
           >
             {category}
@@ -101,19 +93,26 @@ function Home() {
         ))}
       </div>
 
-      {/* 📊 Heading */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold capitalize">{activeCategory} News</h2>
-        <p className="mt-2 text-slate-400">
-          AI-analyzed headlines with credibility insights.
-        </p>
+      {/* 📰 Content Section */}
+      <div className="mb-8 flex items-end justify-between">
+        <div>
+          <h2 className="text-3xl font-black capitalize tracking-tight text-white">
+            {activeCategory} Intelligence
+          </h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Real-time AI analysis of the latest headlines.
+          </p>
+        </div>
       </div>
 
-      {/* 📦 Content */}
+      {/* Grid */}
       {loading ? (
-        <Loader />
+        <div className="flex h-64 items-center justify-center">
+          <Loader />
+        </div>
       ) : error ? (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-center text-red-300">
+        <div className="glass rounded-2xl p-10 text-center text-red-400">
+          <span className="text-2xl block mb-2">⚠️</span>
           {error}
         </div>
       ) : (
