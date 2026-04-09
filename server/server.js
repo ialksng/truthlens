@@ -24,15 +24,16 @@ app.get("/api", (req, res) => {
   res.send("TruthLens API is running...");
 });
 
-// --- Serve frontend build ---
+// --- Serve frontend build under /projects/truthlens ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const clientBuildPath = path.join(__dirname, "../client/dist");
 
-app.use(express.static(clientBuildPath));
+// Serve static files
+app.use("/projects/truthlens", express.static(clientBuildPath));
 
-// React Router fallback
-app.get("*", (req, res) => {
+// React fallback
+app.get("/projects/truthlens/*", (req, res) => {
   res.sendFile(path.join(clientBuildPath, "index.html"));
 });
 
