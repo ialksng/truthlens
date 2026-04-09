@@ -33,3 +33,17 @@ export const fetchBookmarks = async () => {
 
   return res.data;
 };
+
+export const deleteBookmark = async (bookmarkId) => {
+  const token = localStorage.getItem("token"); // Or use your getToken() from authService
+  
+  if (!token) throw new Error("Authentication required");
+
+  const res = await api.delete(`/bookmarks/${bookmarkId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};

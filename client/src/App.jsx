@@ -6,9 +6,11 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import SavedArticles from "./pages/SavedArticles";
 import CompareNews from "./pages/CompareNews";
+import AuthGuard from "./components/AuthGuard";
 
 function App() {
   return (
+  <Router basename="/projects/truthlens">
     <div className="min-h-screen bg-slate-950 text-white">
       <Navbar />
       <Routes>
@@ -18,8 +20,14 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/saved" element={<SavedArticles />} />
         <Route path="/compare" element={<CompareNews />} />
+
+        <Route element={<AuthGuard />}>
+            <Route path="/saved" element={<SavedArticles />} />
+
+        </Route>
       </Routes>
     </div>
+  </Router>
   );
 }
 
