@@ -6,5 +6,6 @@ const router = express.Router();
 
 router.post("/analyze", protect, analyzeArticle);
 router.post("/compare", protect, compareArticles);
+router.post("/extension-analyze", analyzeArticle);
 
 export default router;

@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "TruthLens AI Fact Checker",
+  "version": "1.0",
+  "description": "Instantly analyze any news article for bias, clickbait, and credibility.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ]
+}

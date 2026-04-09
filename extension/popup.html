@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 320px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #020617; /* slate-950 */
+      color: #e2e8f0; /* slate-200 */
+    }
+    h2 { margin-top: 0; font-size: 18px; color: #22d3ee; /* cyan-400 */ }
+    .hidden { display: none; }
+    .loader { text-align: center; color: #94a3b8; margin: 20px 0; }
+    .card { background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #1e293b; }
+    .label { font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
+    .value { font-size: 14px; font-weight: 500; }
+    .score-high { color: #4ade80; } /* green */
+    .score-med { color: #fbbf24; } /* yellow */
+    .score-low { color: #f87171; } /* red */
+    .summary { font-size: 13px; line-height: 1.5; }
+    button { 
+      width: 100%; padding: 10px; background: #06b6d4; color: #000; 
+      border: none; border-radius: 6px; font-weight: bold; cursor: pointer;
+    }
+    button:hover { background: #22d3ee; }
+  </style>
+</head>
+<body>
+
+  <h2>TruthLens AI</h2>
+  
+  <div id="initial-state">
+    <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 16px;">Scan this page for bias, emotional tone, and credibility.</p>
+    <button id="analyze-btn">Analyze This Article</button>
+  </div>
+
+  <div id="loading-state" class="loader hidden">
+    Analyzing page content...
+  </div>
+
+  <div id="results-state" class="hidden">
+    <div class="card">
+      <div class="label">Credibility Score</div>
+      <div class="value" id="res-score">--</div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <div class="card" style="flex: 1;">
+        <div class="label">Detected Bias</div>
+        <div class="value" id="res-bias" style="color: #22d3ee;">--</div>
+      </div>
+      <div class="card" style="flex: 1;">
+        <div class="label">Clickbait</div>
+        <div class="value" id="res-clickbait">--</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">AI Summary</div>
+      <div class="summary" id="res-summary">--</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
