@@ -35,7 +35,7 @@ export const fetchBookmarks = async () => {
 };
 
 export const deleteBookmark = async (bookmarkId) => {
-  const token = localStorage.getItem("token"); // Or use your getToken() from authService
+  const token = getToken(); 
   
   if (!token) throw new Error("Authentication required");
 

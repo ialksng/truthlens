@@ -40,13 +40,13 @@ export const getBookmarks = async (req, res) => {
   }
 };
 
-
+// Remove bookmark
 export const removeBookmark = async (req, res) => {
   try {
     // Find the bookmark by its ID and ensure the logged-in user owns it
     const bookmark = await Bookmark.findOne({ 
       _id: req.params.id, 
-      user: req.user._id 
+      userId: req.user 
     });
 
     if (!bookmark) {
