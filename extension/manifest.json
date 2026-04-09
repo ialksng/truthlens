@@ -8,6 +8,10 @@
   },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage" 
+  ],
+  "host_permissions": [
+    "https://truthlens-3r4q.onrender.com/*"
   ]
 }
