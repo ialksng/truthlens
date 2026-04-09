@@ -3,79 +3,240 @@
 <head>
   <meta charset="UTF-8">
   <style>
+    /* 🌌 GLOBAL THEME */
+    :root {
+      --bg: #020617;
+      --card-bg: rgba(15, 23, 42, 0.6);
+      --cyan: #22d3ee;
+      --cyan-glow: rgba(34, 211, 238, 0.3);
+      --indigo: #6366f1;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
     body {
-      width: 320px;
+      width: 340px; 
       margin: 0;
       padding: 16px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #020617; /* slate-950 */
-      color: #e2e8f0; /* slate-200 */
+      background-color: var(--bg);
+      background-image: radial-gradient(at 50% 0%, rgba(34, 211, 238, 0.1) 0px, transparent 60%);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
     }
-    h2 { margin-top: 0; font-size: 18px; color: #22d3ee; /* cyan-400 */ }
+
     .hidden { display: none !important; }
-    .loader { text-align: center; color: #94a3b8; margin: 20px 0; }
-    .card { background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #1e293b; }
-    .label { font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
-    .value { font-size: 14px; font-weight: 500; }
-    .score-high { color: #4ade80; } /* green */
-    .score-med { color: #fbbf24; } /* yellow */
-    .score-low { color: #f87171; } /* red */
-    .summary { font-size: 13px; line-height: 1.5; }
-    button { 
-      width: 100%; padding: 10px; background: #06b6d4; color: #000; 
-      border: none; border-radius: 6px; font-weight: bold; cursor: pointer;
+
+    /* 🏷️ HEADER */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--cyan);
+      animation: pulse 2s infinite;
+    }
+    
+    /* 🔥 UPDATED LOGO STYLING */
+    .logo {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.025em; /* Matches 'tracking-tight' */
+      display: flex;
+      align-items: center;
+    }
+    .logo-truth {
+      color: #ffffff;
+    }
+    .logo-lens {
+      background: linear-gradient(135deg, #22d3ee 0%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* 🧊 GLASS CARDS */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      border-color: rgba(34, 211, 238, 0.3);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    /* 📊 TYPOGRAPHY & DATA */
+    .label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .value { font-size: 16px; font-weight: 900; }
+    .score-high { color: #4ade80; text-shadow: 0 0 10px rgba(74, 222, 128, 0.3); }
+    .score-med { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }
+    .score-low { color: #f87171; text-shadow: 0 0 10px rgba(248, 113, 113, 0.3); }
+    
+    .summary { 
+      font-size: 13px; 
+      line-height: 1.6; 
+      color: #cbd5e1;
+      font-weight: 300;
+    }
+
+    /* 🎛️ BUTTONS */
+    button {
+      width: 100%;
+      padding: 12px;
+      background: rgba(34, 211, 238, 0.1);
+      color: var(--cyan);
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s ease;
       margin-top: 8px;
+      position: relative;
+      overflow: hidden;
     }
-    button:hover { background: #22d3ee; }
+    button:hover {
+      background: rgba(34, 211, 238, 0.2);
+      border-color: var(--cyan);
+      box-shadow: 0 0 15px var(--cyan-glow);
+      color: #fff;
+    }
+    
+    #save-btn {
+      background: rgba(99, 102, 241, 0.1);
+      color: #818cf8;
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+    #save-btn:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: #818cf8;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+      color: #fff;
+    }
+
+    /* ⌨️ INPUTS */
     input {
-      width: 100%; padding: 8px; margin-top: 8px; border-radius: 4px; border: 1px solid #1e293b;
-      background: #0f172a; color: #fff; box-sizing: border-box;
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      box-sizing: border-box;
+      font-size: 13px;
+      transition: border-color 0.3s;
     }
+    input:focus {
+      outline: none;
+      border-color: var(--cyan);
+    }
+
+    /* 🌀 LOADER */
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 0;
+    }
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 2px dashed var(--cyan);
+      border-radius: 50%;
+      animation: spin 3s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    /* ANIMATIONS */
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
   </style>
 </head>
 <body>
 
-  <h2>TruthLens AI</h2>
+  <div class="header">
+    <div class="status-dot"></div>
+    <h2 class="logo">
+      <span class="logo-truth">Truth</span><span class="logo-lens">Lens</span>
+    </h2>
+  </div>
   
   <div id="initial-state">
-    <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 16px;">Scan this page for bias, emotional tone, and credibility.</p>
-    <button id="analyze-btn">Analyze This Article</button>
+    <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.5;">
+      Initialize Neural Engine to scan this document for bias, emotional manipulation, and credibility.
+    </p>
+    <button id="analyze-btn">Initiate Analysis</button>
   </div>
 
-  <div id="loading-state" class="loader hidden">
-    Analyzing page content...
+  <div id="loading-state" class="loader-container hidden">
+    <div class="spinner"></div>
+    <span style="font-size: 11px; font-weight: bold; letter-spacing: 0.1em; color: var(--cyan); text-transform: uppercase;">
+      Extracting Intel...
+    </span>
   </div>
 
   <div id="results-state" class="hidden">
-    <div class="card">
-      <div class="label">Credibility Score</div>
-      <div class="value" id="res-score">--</div>
+    <div class="card" style="text-align: center; padding: 20px 10px;">
+      <div class="label" style="justify-content: center;">Confidence Index</div>
+      <div class="value" id="res-score" style="font-size: 32px; margin-top: 8px;">--</div>
     </div>
-    <div style="display: flex; gap: 8px;">
+    
+    <div style="display: flex; gap: 10px;">
       <div class="card" style="flex: 1;">
-        <div class="label">Detected Bias</div>
-        <div class="value" id="res-bias" style="color: #22d3ee;">--</div>
+        <div class="label">Bias</div>
+        <div class="value" id="res-bias" style="color: var(--cyan); font-size: 13px;">--</div>
       </div>
       <div class="card" style="flex: 1;">
         <div class="label">Clickbait</div>
-        <div class="value" id="res-clickbait">--</div>
+        <div class="value" id="res-clickbait" style="font-size: 13px;">--</div>
       </div>
     </div>
+
     <div class="card">
-      <div class="label">AI Summary</div>
+      <div class="label">Executive Summary</div>
       <div class="summary" id="res-summary">--</div>
     </div>
     
-    <button id="save-btn">💾 Save Article</button>
+    <button id="save-btn">Encrypt & Save</button>
 
-    <div id="auth-state" class="hidden">
-      <input type="email" id="email" placeholder="Email">
-      <input type="password" id="password" placeholder="Password">
-      <button id="login-btn">Login to Save</button>
+    <div id="auth-state" class="hidden card" style="margin-top: 12px; padding: 16px;">
+      <div class="label" style="color: var(--cyan);">Authentication Required</div>
+      <input type="email" id="email" placeholder="Agent Email">
+      <input type="password" id="password" placeholder="Passcode">
+      <button id="login-btn" style="margin-top: 12px;">Authorize</button>
     </div>
 
-    <div id="save-status" class="hidden" style="color:#4ade80; font-size:12px; margin-top:8px; text-align: center;">
-      Saved successfully!
+    <div id="save-status" class="hidden" style="color:#4ade80; font-size:11px; font-weight:bold; letter-spacing:0.1em; text-transform:uppercase; margin-top:12px; text-align: center; text-shadow: 0 0 8px rgba(74,222,128,0.4);">
+      Datapoint Secured
     </div>
   </div>
 

@@ -1,77 +1,91 @@
-// client/src/pages/SavedArticles.jsx (Key additions)
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-// 1. Make sure to import deleteBookmark
-import { fetchBookmarks, deleteBookmark } from "../services/bookmarkApi"; 
 import NewsCard from "../components/NewsCard";
+import Loader from "../components/Loader";
+import { getBookmarks } from "../services/bookmarkApi";
+import { isLoggedIn } from "../services/authService";
+import { Link } from "react-router-dom";
 
 function SavedArticles() {
-  const [bookmarks, setBookmarks] = useState([]);
+  const [savedArticles, setSavedArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchSavedArticles();
+    const fetchSaved = async () => {
+      if (!isLoggedIn()) {
+        setError("AUTHENTICATION REQUIRED. Please log in to access the encrypted vault.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const data = await getBookmarks();
+        setSavedArticles(data);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to decrypt saved datapoints. Check your connection.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSaved();
   }, []);
 
-  const fetchSavedArticles = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchBookmarks();
-      setBookmarks(data);
-    } catch (err) {
-      setError("Failed to load saved articles.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 2. Add the handleRemove function
-  const handleRemove = async (bookmarkId) => {
-    // Optional: Add a confirmation dialog so they don't accidentally delete
-    if (!window.confirm("Are you sure you want to remove this article?")) return;
-
-    try {
-      await deleteBookmark(bookmarkId);
-      // 🔥 UI Polish: Filter the deleted article out of the state so it disappears instantly
-      setBookmarks((prevBookmarks) => prevBookmarks.filter((b) => b._id !== bookmarkId));
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to remove article.");
-    }
-  };
-
-  if (loading) {
-    return <div className="py-20 text-center text-cyan-400">Loading your library...</div>;
-  }
-
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
-      <h1 className="mb-8 text-4xl font-bold text-white">Your Saved Library</h1>
+    <div className="mx-auto max-w-7xl px-6 pb-20 pt-32">
+      
+      {/* 🛡️ Header HUD */}
+      <div className="mb-12 border-b border-white/5 pb-8">
+        <div className="mb-4 inline-flex items-center gap-3 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-4 py-2">
+          <div className="h-2 w-2 animate-pulse rounded-full bg-indigo-400 shadow-[0_0_10px_#818cf8]" />
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">
+            Secure Storage
+          </span>
+        </div>
+        
+        <h1 className="text-5xl font-black tracking-tight text-white md:text-6xl">
+          Intel <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Vault</span>
+        </h1>
+        <p className="mt-4 max-w-2xl text-lg font-light text-slate-400">
+          Your personal database of encrypted, verified datapoints and AI credibility reports.
+        </p>
+      </div>
 
-      {error && <p className="text-red-400">{error}</p>}
-
-      {!loading && bookmarks.length === 0 ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center">
-          <p className="mb-4 text-slate-400">You haven't saved any articles yet.</p>
-          <Link to="/" className="text-cyan-400 hover:underline">Go read some news</Link>
+      {/* 🗄️ Content Grid */}
+      {loading ? (
+        <div className="flex h-64 items-center justify-center">
+          <Loader />
+        </div>
+      ) : error ? (
+        <div className="glass flex flex-col items-center justify-center rounded-[2rem] p-16 text-center">
+          <div className="mb-6 h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
+            <svg className="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <p className="text-xl font-bold tracking-widest text-red-400 uppercase">{error}</p>
+          {!isLoggedIn() && (
+            <Link to="/login" className="mt-6 rounded-lg bg-cyan-500 px-6 py-2.5 text-sm font-bold text-slate-950 transition-all hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(34,211,238,0.4)]">
+              INITIALIZE LOGIN
+            </Link>
+          )}
+        </div>
+      ) : savedArticles.length === 0 ? (
+        <div className="glass flex flex-col items-center justify-center rounded-[2rem] border-dashed border-white/10 p-20 text-center">
+          <svg className="mb-6 h-12 w-12 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <p className="text-xl font-bold tracking-widest text-slate-400 uppercase">Vault is Empty</p>
+          <p className="mt-2 text-sm text-slate-500">Scan and save articles from the Home dashboard or extension to populate your vault.</p>
+          <Link to="/" className="mt-8 rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-6 py-2.5 text-xs font-bold tracking-widest text-cyan-400 transition-all hover:bg-cyan-500/20">
+            BROWSE INTEL
+          </Link>
         </div>
       ) : (
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {bookmarks.map((bookmark) => (
-            <div key={bookmark._id} className="relative group">
-              
-              {/* Render your existing NewsCard */}
-              <NewsCard article={bookmark} /> 
-
-              {/* 3. Add the Remove Button floating over the card */}
-              <button
-                onClick={() => handleRemove(bookmark._id)}
-                className="absolute top-4 right-4 rounded-full bg-red-500/80 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg backdrop-blur-sm transition-all duration-300 hover:bg-red-500 group-hover:opacity-100"
-              >
-                Remove
-              </button>
-              
-            </div>
+          {savedArticles.map((article) => (
+            <NewsCard key={article._id} article={article} />
           ))}
         </div>
       )}
