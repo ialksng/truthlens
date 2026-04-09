@@ -1,168 +1,172 @@
-const API_BASE = "https://truthlens-3r4q.onrender.com/api";
+document.addEventListener("DOMContentLoaded", () => {
 
-let currentAnalysis = null;
-let currentArticleData = null;
+  let currentPageData = null;
 
-// INIT (optional login)
-chrome.storage.local.get(["token", "userName"], (result) => {
-  if (result.token) {
-    document.getElementById("logout-btn").classList.remove("hidden");
-    document.getElementById("user-greeting").innerText = `Hello, ${result.userName}!`;
-  }
-});
+  // 🔍 ANALYZE BUTTON
+  document.getElementById("analyze-btn").addEventListener("click", async () => {
+    console.log("Analyze clicked");
 
-// LOGIN
-document.getElementById("login-btn").addEventListener("click", async () => {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+    document.getElementById("initial-state").classList.add("hidden");
+    document.getElementById("loading-state").classList.remove("hidden");
 
-  try {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ email, password })
-    });
+    try {
+      let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    const data = await res.json();
+      // Prevent chrome:// errors
+      if (!tab.url.startsWith("http")) {
+        throw new Error("Open a valid article page.");
+      }
 
-    if (res.ok) {
-      chrome.storage.local.set({
-        token: data.token,
-        userName: data.name
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: tab.id },
+          function: extractPageData,
+        },
+        async (results) => {
+
+          if (!results || !results[0] || !results[0].result) {
+            showError("Could not extract page content.");
+            return;
+          }
+
+          currentPageData = results[0].result;
+
+          try {
+            const response = await fetch("https://truthlens-3r4q.onrender.com/api/ai/extension-analyze", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(currentPageData)
+            });
+
+            if (!response.ok) {
+              throw new Error("API error");
+            }
+
+            const data = await response.json();
+
+            document.getElementById("loading-state").classList.add("hidden");
+            document.getElementById("results-state").classList.remove("hidden");
+
+            const scoreEl = document.getElementById("res-score");
+
+            scoreEl.innerText = data.credibilityScore + "/100";
+            scoreEl.className = "value";
+
+            if (data.credibilityScore >= 70) scoreEl.classList.add("score-high");
+            else if (data.credibilityScore >= 40) scoreEl.classList.add("score-med");
+            else scoreEl.classList.add("score-low");
+
+            document.getElementById("res-bias").innerText = data.biasLevel || "--";
+            document.getElementById("res-clickbait").innerText = data.clickbaitLevel || "--";
+            document.getElementById("res-summary").innerText = data.summary || "--";
+
+          } catch (error) {
+            showError("API failed. Try again.");
+          }
+        }
+      );
+
+    } catch (error) {
+      showError(error.message);
+    }
+  });
+
+  // 💾 SAVE BUTTON
+  document.getElementById("save-btn").addEventListener("click", async () => {
+    const { token } = await chrome.storage.local.get("token");
+
+    // If not logged in → show login form
+    if (!token) {
+      document.getElementById("auth-state").classList.remove("hidden");
+      return;
+    }
+
+    const bookmarkData = {
+      title: currentPageData?.title || document.title,
+      description: document.getElementById("res-summary").innerText,
+      link: currentPageData?.url || window.location.href,
+      source_name: currentPageData?.source || window.location.hostname,
+      image_url: ""
+    };
+
+    try {
+      const res = await fetch("https://truthlens-3r4q.onrender.com/api/bookmarks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(bookmarkData)
       });
 
-      document.getElementById("auth-state").classList.add("hidden");
-      document.getElementById("logout-btn").classList.remove("hidden");
-      document.getElementById("user-greeting").innerText = `Hello, ${data.name}!`;
-    } else {
-      alert("Login failed");
-    }
-  } catch {
-    alert("Server error");
-  }
-});
-
-// LOGOUT
-document.getElementById("logout-btn").addEventListener("click", () => {
-  chrome.storage.local.clear();
-  location.reload();
-});
-
-// ANALYZE
-document.getElementById("analyze-btn").addEventListener("click", async () => {
-  document.getElementById("analyze-state").classList.add("hidden");
-  document.getElementById("loading-state").classList.remove("hidden");
-
-  try {
-    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    if (!tab.url.startsWith("http")) {
-      throw new Error("Open a valid article.");
-    }
-
-    chrome.scripting.executeScript(
-      { target: { tabId: tab.id }, function: extractPageData },
-      async (results) => {
-        currentArticleData = results[0].result;
-
-        try {
-          const res = await fetch(`${API_BASE}/ai/extension-analyze`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(currentArticleData)
-          });
-
-          currentAnalysis = await res.json();
-
-          showResults(currentAnalysis);
-        } catch {
-          showError("Analysis failed.");
-        }
+      if (res.ok) {
+        document.getElementById("save-status").classList.remove("hidden");
+        document.getElementById("save-btn").style.display = "none";
+      } else {
+        alert("Failed to save article.");
       }
-    );
-  } catch (err) {
-    showError(err.message);
-  }
-});
-
-// SHOW RESULTS
-function showResults(data) {
-  document.getElementById("loading-state").classList.add("hidden");
-  document.getElementById("results-state").classList.remove("hidden");
-
-  const scoreEl = document.getElementById("res-score");
-  scoreEl.innerText = `${data.credibilityScore}/100`;
-
-  scoreEl.classList.remove("score-high","score-med","score-low");
-
-  if (data.credibilityScore >= 75) scoreEl.classList.add("score-high");
-  else if (data.credibilityScore >= 50) scoreEl.classList.add("score-med");
-  else scoreEl.classList.add("score-low");
-
-  document.getElementById("res-bias").innerText = data.biasLevel || "--";
-  document.getElementById("res-clickbait").innerText = data.clickbaitLevel || "--";
-  document.getElementById("res-summary").innerText = data.summary || "--";
-}
-
-// SAVE (LOGIN REQUIRED)
-document.getElementById("save-btn").addEventListener("click", async () => {
-  const { token } = await chrome.storage.local.get("token");
-
-  if (!token) {
-    document.getElementById("auth-state").classList.remove("hidden");
-    return;
-  }
-
-  const bookmarkData = {
-    title: currentArticleData.title,
-    description: currentArticleData.description,
-    link: currentArticleData.url,
-    source_name: currentArticleData.source,
-    image_url: currentArticleData.image || ""
-  };
-
-  try {
-    const res = await fetch(`${API_BASE}/bookmarks`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(bookmarkData)
-    });
-
-    if (res.ok) {
-      document.getElementById("save-status").classList.remove("hidden");
-      document.getElementById("save-btn").classList.add("hidden");
-    } else {
-      alert("Save failed");
+    } catch {
+      alert("Server error.");
     }
-  } catch {
-    alert("Server error");
+  });
+
+  // 🔐 LOGIN BUTTON
+  document.getElementById("login-btn").addEventListener("click", async () => {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      const res = await fetch("https://truthlens-3r4q.onrender.com/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        chrome.storage.local.set({
+          token: data.token,
+          userName: data.name
+        });
+
+        document.getElementById("auth-state").classList.add("hidden");
+        alert("Login successful! Click save again.");
+      } else {
+        alert(data.message || "Login failed");
+      }
+    } catch {
+      alert("Server error");
+    }
+  });
+
+  // ❌ ERROR HANDLER
+  function showError(msg) {
+    document.getElementById("loading-state").innerHTML =
+      `<p style="color:#f87171; font-size:12px;">${msg}</p>`;
   }
+
 });
 
-// BACK
-document.getElementById("back-btn").addEventListener("click", () => {
-  document.getElementById("results-state").classList.add("hidden");
-  document.getElementById("analyze-state").classList.remove("hidden");
-  document.getElementById("save-status").classList.add("hidden");
-  document.getElementById("save-btn").classList.remove("hidden");
-});
 
-// ERROR
-function showError(msg) {
-  document.getElementById("loading-state").innerHTML =
-    `<p style="color:#f87171;font-size:12px;">${msg}</p>`;
-}
-
-// CONTENT EXTRACTION
+// 🧠 RUNS INSIDE WEBPAGE
 function extractPageData() {
+  let description =
+    document.querySelector('meta[name="description"]')?.content ||
+    document.querySelector('meta[property="og:description"]')?.content;
+
+  if (!description || description.length < 100) {
+    const paragraphs = Array.from(document.querySelectorAll("p"))
+      .map(p => p.innerText)
+      .filter(t => t.length > 50);
+
+    description = paragraphs.join(" ").substring(0, 1500);
+  }
+
   return {
     title: document.title,
-    description: document.querySelector('meta[name="description"]')?.content || "",
+    description,
     source: window.location.hostname,
-    url: window.location.href,
-    image: document.querySelector('meta[property="og:image"]')?.content || ""
+    url: window.location.href
   };
 }
