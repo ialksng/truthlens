@@ -13,12 +13,12 @@ export const analyzeArticle = async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       generationConfig: {
         temperature: 0.2,
         topP: 0.8,
         topK: 40,
-        response_mime_type: "application/json",
+        responseMimeType: "application/json",
         maxOutputTokens: 500
       }
     });
@@ -54,7 +54,6 @@ Source: "${source || "Unknown"}"
 
     console.log("Raw Gemini Response:", responseText);
 
-    // Remove accidental markdown if Gemini misbehaves
     responseText = responseText
       .replace(/```json/gi, "")
       .replace(/```/g, "")
@@ -67,7 +66,6 @@ Source: "${source || "Unknown"}"
     } catch (parseError) {
       console.error("Initial JSON parse failed:", responseText);
 
-      // Fallback: try extracting JSON object from noisy output
       const match = responseText.match(/\{[\s\S]*\}/);
       if (!match) {
         return res.status(500).json({
@@ -87,7 +85,6 @@ Source: "${source || "Unknown"}"
       }
     }
 
-    // Optional safety validation
     const safeResponse = {
       summary: analysisData.summary || "No summary available.",
       credibilityScore: Number(analysisData.credibilityScore) || 50,
