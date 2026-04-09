@@ -1,90 +1,115 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { registerUser } from "../services/authApi";
 
 function Register() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-
+    setLoading(true);
+    setError("");
     try {
-      setLoading(true);
-      setError("");
-
-      await registerUser(formData);
-      alert("Registration successful!");
+      await registerUser({ name, email, password });
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
+      setError(err.response?.data?.message || "Registration sequence failed.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-[85vh] items-center justify-center px-6">
-      <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-2xl">
-        <h1 className="mb-2 text-3xl font-bold">Create Account</h1>
-        <p className="mb-6 text-slate-400">
-          Join TruthLens to personalize your reading experience.
-        </p>
+    <div className="flex min-h-[80vh] items-center justify-center px-6 py-20">
+      <div className="glass group relative w-full max-w-md overflow-hidden rounded-[2.5rem] p-10 shadow-2xl">
+        
+        {/* Animated Background Accents */}
+        <div className="absolute -right-20 -top-20 h-40 w-40 animate-pulse rounded-full bg-indigo-500/20 blur-[60px]" />
+        <div className="absolute -bottom-20 -left-20 h-40 w-40 animate-pulse rounded-full bg-cyan-500/20 blur-[60px]" />
 
-        {error && (
-          <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
-            {error}
+        <div className="relative z-10">
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+              <svg className="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-white">Create Protocol</h1>
+            <p className="mt-2 text-sm text-slate-400">Register a new identity to access the Neural Engine.</p>
           </div>
-        )}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            name="name"
-            placeholder="Name"
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-cyan-500 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400"
-          >
-            {loading ? "Creating account..." : "Register"}
-          </button>
-        </form>
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center text-sm font-medium text-red-400">
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleRegister} className="space-y-5">
+            <div>
+              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-indigo-400">Designation (Name)</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Agent Smith"
+                className="w-full rounded-xl border border-white/10 bg-slate-950/50 p-4 text-sm text-white placeholder-slate-600 outline-none transition-all focus:border-indigo-500 focus:shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-indigo-400">Secure Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="agent@truthlens.ai"
+                className="w-full rounded-xl border border-white/10 bg-slate-950/50 p-4 text-sm text-white placeholder-slate-600 outline-none transition-all focus:border-indigo-500 focus:shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+              />
+            </div>
+            
+            <div>
+              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-indigo-400">Passcode</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-xl border border-white/10 bg-slate-950/50 p-4 text-sm text-white placeholder-slate-600 outline-none transition-all focus:border-indigo-500 focus:shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="group/btn relative mt-6 flex w-full items-center justify-center overflow-hidden rounded-xl border border-indigo-500 bg-indigo-500/10 px-4 py-4 text-sm font-bold tracking-[0.2em] text-indigo-300 transition-all hover:bg-indigo-500 hover:text-white hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50"
+            >
+              {loading ? (
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
+              ) : (
+                "ESTABLISH IDENTITY"
+              )}
+            </button>
+          </form>
+
+          {/* Cross-Link */}
+          <p className="mt-8 text-center text-sm text-slate-500">
+            Already possess clearance?{" "}
+            <Link to="/login" className="font-bold tracking-wider text-indigo-400 transition hover:text-indigo-300 hover:underline">
+              AUTHENTICATE HERE
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
