@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 // 1. Make sure to import deleteBookmark
-import { getBookmarks, deleteBookmark } from "../services/bookmarkApi"; 
+import { fetchBookmarks, deleteBookmark } from "../services/bookmarkApi"; 
 import NewsCard from "../components/NewsCard";
 
 function SavedArticles() {
@@ -17,7 +17,7 @@ function SavedArticles() {
   const fetchSavedArticles = async () => {
     try {
       setLoading(true);
-      const data = await getBookmarks();
+      const data = await fetchBookmarks();
       setBookmarks(data);
     } catch (err) {
       setError("Failed to load saved articles.");
