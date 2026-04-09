@@ -164,3 +164,72 @@ Source: ${source || "Unknown"}
     });
   }
 };
+
+export const compareArticles = async (req, res) => {
+  try {
+    const { article1, article2 } = req.body;
+
+    if (!article1 || !article2) {
+      return res.status(400).json({ message: "Two articles are required for comparison." });
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const prompt = `
+      You are an expert media analyst. Compare how these two different news sources are reporting on the same topic.
+      
+      ARTICLE 1:
+      Source: "${article1.source}"
+      Title: "${article1.title}"
+      Snippet: "${article1.description || 'N/A'}"
+
+      ARTICLE 2:
+      Source: "${article2.source}"
+      Title: "${article2.title}"
+      Snippet: "${article2.description || 'N/A'}"
+
+      Analyze the differences in their framing, bias, and tone. 
+      Respond ONLY with a valid, raw JSON object matching exactly this structure (no markdown formatting, no \`\`\`json blocks):
+      {
+        "overallSummary": "A 2-sentence summary of the core event both articles are covering.",
+        "factualDifferences": "Briefly state if one article includes facts or claims that the other omits.",
+        "article1Analysis": {
+          "bias": "<Left-Leaning | Right-Leaning | Centrist | Corporate | Sensationalist>",
+          "tone": "1-2 words describing the tone",
+          "focus": "What specific angle is this article prioritizing?"
+        },
+        "article2Analysis": {
+          "bias": "<Left-Leaning | Right-Leaning | Centrist | Corporate | Sensationalist>",
+          "tone": "1-2 words describing the tone",
+          "focus": "What specific angle is this article prioritizing?"
+        }
+      }
+    `;
+
+    const result = await model.generateContent(prompt);
+    let responseText = result.response.text();
+
+    console.log("Raw Gemini Compare Response:", responseText);
+
+    responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+    try {
+      const analysisData = JSON.parse(responseText);
+      res.status(200).json(analysisData);
+    } catch (parseError) {
+      console.error("Failed to parse Gemini JSON:", responseText);
+      return res.status(500).json({ 
+        message: "AI returned an invalid format.",
+        error: "JSON Parsing Error"
+      });
+    }
+
+  } catch (error) {
+    console.error("AI Compare Error:", error);
+    res.status(500).json({ 
+      message: "Failed to compare articles.",
+      error: error.message 
+    });
+  }
+};
