@@ -41,51 +41,59 @@ function Home() {
     }
   };
 
+  // 🔥 FIXED: auto-fetch when category changes
   useEffect(() => {
     fetchNews(activeCategory);
-  }, []);
+  }, [activeCategory]);
 
   const handleCategoryClick = (category) => {
     setActiveCategory(category);
     setSearchTerm(category);
-    fetchNews(category);
   };
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
-      {/* Hero */}
-      <section className="mb-12 rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-8 shadow-2xl">
-        <div className="max-w-3xl">
-          <p className="mb-3 inline-block rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-300">
-            AI-Powered News Intelligence
-          </p>
-          <h1 className="text-4xl font-bold leading-tight md:text-5xl">
+      
+      {/* 🚀 High-Tech Hero */}
+      <section className="relative mb-16 overflow-hidden rounded-[2.5rem] border border-slate-800 bg-slate-900 px-8 py-16 shadow-2xl">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-[100px]" />
+        <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-blue-500/10 blur-[100px]" />
+        
+        <div className="relative z-10 mx-auto max-w-4xl text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/5 px-4 py-2">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
+            <span className="text-xs font-bold uppercase tracking-widest text-cyan-400">
+              Neural Engine Online
+            </span>
+          </div>
+          
+          <h1 className="bg-gradient-to-b from-white to-slate-400 bg-clip-text text-6xl font-black tracking-tighter text-transparent md:text-8xl">
             TruthLens
           </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-            Read smarter. Detect misinformation. Understand credibility, bias,
-            and clickbait with AI-powered insights.
+          
+          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-slate-400">
+            Decoding global news through AI. Detect bias, clickbait, and credibility instantly.
           </p>
         </div>
       </section>
 
-      {/* Search */}
+      {/* 🔍 Search */}
       <SearchBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         onSearch={() => fetchNews(searchTerm)}
       />
 
-      {/* Categories */}
-      <div className="mb-10 flex flex-wrap gap-3">
+      {/* 🧠 Category HUD */}
+      <div className="mb-10 flex flex-wrap justify-center gap-3">
         {categories.map((category) => (
           <button
             key={category}
             onClick={() => handleCategoryClick(category)}
-            className={`rounded-full px-5 py-2 text-sm font-medium capitalize transition ${
+            className={`group relative rounded-xl px-6 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
               activeCategory === category
-                ? "bg-cyan-500 text-slate-950"
-                : "border border-slate-700 bg-slate-900 text-slate-200 hover:border-cyan-400 hover:text-cyan-300"
+                ? "bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                : "border border-slate-800 bg-slate-900/50 text-slate-400 hover:border-cyan-500/50 hover:text-white"
             }`}
           >
             {category}
@@ -93,15 +101,15 @@ function Home() {
         ))}
       </div>
 
-      {/* Heading */}
+      {/* 📊 Heading */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold capitalize">{activeCategory} News</h2>
         <p className="mt-2 text-slate-400">
-          Latest headlines with smart readability and AI-ready analysis.
+          AI-analyzed headlines with credibility insights.
         </p>
       </div>
 
-      {/* Content */}
+      {/* 📦 Content */}
       {loading ? (
         <Loader />
       ) : error ? (

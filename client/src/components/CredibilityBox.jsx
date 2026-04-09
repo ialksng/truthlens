@@ -5,7 +5,7 @@ function CredibilityBox({ analysis }) {
   const tone = analysis?.emotionalTone || "Neutral";
   const explanation =
     analysis?.explanation ||
-    "This article appears reasonably credible, but some claims may require additional source verification. Language is mostly neutral with moderate headline sensationalism.";
+    "This article appears reasonably credible, but some claims may require verification.";
 
   const getScoreColor = (score) => {
     if (score >= 75) return "text-emerald-400";
@@ -19,116 +19,111 @@ function CredibilityBox({ analysis }) {
     return "bg-red-400";
   };
 
-  const getCredibilityLabel = (score) => {
-    if (score >= 75) return "High Credibility";
-    if (score >= 50) return "Moderate Credibility";
-    return "Low Credibility";
+  const getRiskLabel = () => {
+    if (score >= 75) return "LOW RISK";
+    if (score >= 50) return "MODERATE RISK";
+    return "HIGH RISK";
   };
 
   const getBadgeStyle = (value, type) => {
     const lower = value.toLowerCase();
 
-    if (type === "clickbait") {
-      if (lower === "low") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
-      if (lower === "medium") return "bg-yellow-500/15 text-yellow-300 border-yellow-500/20";
-      return "bg-red-500/15 text-red-300 border-red-500/20";
-    }
+    if (lower === "low" || lower === "neutral")
+      return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
 
-    if (type === "bias") {
-      if (lower === "low") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
-      if (lower === "medium") return "bg-yellow-500/15 text-yellow-300 border-yellow-500/20";
-      return "bg-red-500/15 text-red-300 border-red-500/20";
-    }
+    if (lower === "medium" || lower === "balanced")
+      return "bg-yellow-500/15 text-yellow-300 border-yellow-500/20";
 
-    if (type === "tone") {
-      if (lower === "neutral") return "bg-cyan-500/15 text-cyan-300 border-cyan-500/20";
-      if (lower === "optimistic") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
-      if (lower === "sensationalist") return "bg-orange-500/15 text-orange-300 border-orange-500/20";
-      if (lower === "fear-mongering") return "bg-red-500/15 text-red-300 border-red-500/20";
-      if (lower === "angry") return "bg-rose-500/15 text-rose-300 border-rose-500/20";
-    }
-
-    return "bg-slate-700 text-slate-200 border-slate-600";
+    return "bg-red-500/15 text-red-300 border-red-500/20";
   };
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-      <h2 className="mb-6 text-2xl font-bold text-cyan-400">
-        Credibility Analysis
+    <div className="rounded-[2rem] border border-slate-800 bg-slate-900/40 p-8 backdrop-blur-xl">
+
+      {/* HEADER */}
+      <h2 className="mb-8 text-xs font-black uppercase tracking-[0.3em] text-slate-500">
+        // AI_CREDIBILITY_REPORT
       </h2>
 
-      {/* Credibility Score Highlight */}
-      <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-950 p-5">
-        <div className="flex items-center justify-between">
+      {/* SCORE BLOCK */}
+      <div className="mb-10 rounded-2xl border border-slate-700 bg-slate-950 p-6 shadow-inner">
+        <div className="flex items-end justify-between mb-4">
           <div>
-            <p className="text-sm text-slate-400">Credibility Score</p>
-            <p className={`mt-2 text-4xl font-extrabold ${getScoreColor(score)}`}>
-              {score}/100
+            <p className="text-[10px] font-bold text-cyan-400/60 uppercase tracking-widest">
+              Confidence Index
             </p>
-            <p className="mt-1 text-sm text-slate-400">
-              {getCredibilityLabel(score)}
+
+            <p className={`text-6xl font-black ${getScoreColor(score)}`}>
+              {score}%
+            </p>
+
+            <p className="text-xs text-slate-400 mt-1">
+              {getRiskLabel()}
             </p>
           </div>
 
-          <div className="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-300">
-            TruthLens AI
-          </div>
+          <span className="rounded-md bg-slate-800 px-2 py-1 text-[10px] font-bold text-cyan-400">
+            VERIFIED_DATA
+          </span>
         </div>
 
-        <div className="mt-5 h-3 w-full overflow-hidden rounded-full bg-slate-800">
-          <div
-            className={`h-full rounded-full ${getScoreBarColor(score)} transition-all duration-500`}
-            style={{ width: `${Math.min(score, 100)}%` }}
-          ></div>
-        </div>
-      </div>
-
-      {/* Metrics */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-slate-700 bg-slate-950 p-4">
-          <p className="text-sm text-slate-400">Clickbait Level</p>
-          <div
-            className={`mt-3 inline-flex rounded-full border px-4 py-2 text-sm font-semibold ${getBadgeStyle(
-              clickbait,
-              "clickbait"
-            )}`}
-          >
-            {clickbait}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-700 bg-slate-950 p-4">
-          <p className="text-sm text-slate-400">Bias Level</p>
-          <div
-            className={`mt-3 inline-flex rounded-full border px-4 py-2 text-sm font-semibold ${getBadgeStyle(
-              bias,
-              "bias"
-            )}`}
-          >
-            {bias}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-700 bg-slate-950 p-4 sm:col-span-2">
-          <p className="text-sm text-slate-400">Emotional Tone</p>
-          <div
-            className={`mt-3 inline-flex rounded-full border px-4 py-2 text-sm font-semibold ${getBadgeStyle(
-              tone,
-              "tone"
-            )}`}
-          >
-            {tone}
-          </div>
+        {/* SEGMENTED BAR */}
+        <div className="flex gap-1.5">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className={`h-3 flex-1 rounded-sm transition-all duration-700 ${
+                i < score / 5
+                  ? `${getScoreBarColor(score)} shadow-[0_0_6px_rgba(16,185,129,0.6)]`
+                  : "bg-slate-800"
+              }`}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Explanation */}
-      <div className="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
-        <p className="text-sm font-medium text-slate-400">AI Explanation</p>
-        <p className="mt-3 leading-7 text-slate-300">{explanation}</p>
+      {/* METRICS */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[
+          { label: "Bias", value: bias, type: "bias" },
+          { label: "Clickbait", value: clickbait, type: "clickbait" },
+          { label: "Tone", value: tone, type: "tone" },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 hover:border-cyan-500/40 transition"
+          >
+            <p className="text-[10px] text-slate-500 uppercase mb-2">
+              {item.label}
+            </p>
+
+            <span
+              className={`rounded-lg border px-3 py-1 text-[10px] font-bold uppercase ${getBadgeStyle(
+                item.value,
+                item.type
+              )}`}
+            >
+              {item.value}
+            </span>
+          </div>
+        ))}
       </div>
+
+      {/* AI EXPLANATION */}
+      <div className="mt-8 rounded-xl border-l-4 border-cyan-500 bg-slate-950 p-5">
+        <p className="text-[10px] font-bold text-cyan-400 uppercase mb-2">
+          AI Reasoning Engine
+        </p>
+
+        <p className="text-sm leading-relaxed text-slate-300 italic">
+          "{explanation}"
+        </p>
+      </div>
+
+      {/* 🔥 NEW: ACTION BUTTON */}
+      <button className="mt-6 w-full rounded-xl bg-cyan-500/10 border border-cyan-500/30 py-3 text-sm font-bold text-cyan-300 hover:bg-cyan-500/20 transition">
+        Explain in Detail →
+      </button>
     </div>
   );
 }
-
-export default CredibilityBox;
