@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fetchNews } from "../services/newsService";
+import { fetchNewsByQuery } from "../services/newsService";
 import { compareArticlesData } from "../services/aiApi";
 import { isLoggedIn } from "../services/authService";
 
@@ -22,8 +22,10 @@ function CompareNews() {
     setIsSearching(true);
     setError("");
     try {
-      const data = await fetchNews(query);
-      setSearchResults(data.results || []);
+      // FIXED: Using the correctly imported fetchNewsByQuery function
+      const data = await fetchNewsByQuery(query);
+      // FIXED: Assuming your service returns the array directly based on Home.jsx
+      setSearchResults(data || []);
     } catch (err) {
       setError("Failed to fetch news. Try another search term.");
     } finally {
