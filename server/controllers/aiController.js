@@ -1,5 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import ArticleAnalysis from "../models/ArticleAnalysis.js";
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 export const analyzeArticle = async (req, res) => {
   try {
@@ -7,44 +12,35 @@ export const analyzeArticle = async (req, res) => {
 
     if (!title) {
       return res.status(400).json({
-        message: "Article title is required for analysis."
+        message: "Article title is required",
       });
     }
 
-    // Create unique article key
     const articleKey = link || title.trim().toLowerCase();
 
-    // 1. CHECK DATABASE CACHE FIRST
-    const existingAnalysis = await ArticleAnalysis.findOne({ articleKey });
-
-    if (existingAnalysis) {
-      console.log("Returning cached AI analysis from MongoDB");
-
-      return res.status(200).json({
-        summary: existingAnalysis.summary,
-        credibilityScore: existingAnalysis.credibilityScore,
-        clickbaitLevel: existingAnalysis.clickbaitLevel,
-        biasLevel: existingAnalysis.biasLevel,
-        emotionalTone: existingAnalysis.emotionalTone,
-        explanation: existingAnalysis.explanation,
-        aiAvailable: existingAnalysis.aiAvailable,
-        cached: true
-      });
+    // ✅ 1. CHECK DB CACHE
+    const existing = await ArticleAnalysis.findOne({ articleKey });
+    if (existing) {
+      console.log("Using cached result");
+      return res.status(200).json({ ...existing.toObject(), cached: true });
     }
 
-    // 2. IF NOT FOUND, CALL GEMINI
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    let analysisData = null;
 
-    const MODELS = [
-      "gemini-2.5-flash-lite",
-      "gemini-2.5-flash",
-      "gemini-2.0-flash-lite",
-      "gemini-2.0-flash"
-    ];
+    // 🔥 2. TRY GEMINI FIRST
+    try {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-    const prompt = `
-Return ONLY a valid JSON object.
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.0-flash",
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: "application/json",
+        },
+      });
 
+      const prompt = `
+Return ONLY JSON:
 {
   "summary": "string",
   "credibilityScore": 0,
@@ -54,112 +50,117 @@ Return ONLY a valid JSON object.
   "explanation": "string"
 }
 
-Analyze this news article:
-Title: "${title}"
-Description: "${description || "N/A"}"
-Source: "${source || "Unknown"}"
+Title: ${title}
+Description: ${description || "N/A"}
+Source: ${source || "Unknown"}
 `;
 
-    let result;
-    let lastError;
+      const result = await model.generateContent(prompt);
+      let text = result.response.text();
 
-    for (const modelName of MODELS) {
+      text = text.replace(/```/g, "").trim();
+
+      analysisData = JSON.parse(text);
+
+      console.log("✅ Gemini success");
+    } catch (err) {
+      console.log("❌ Gemini failed → trying Groq");
+    }
+
+    // 🔥 3. FALLBACK TO GROQ
+    if (!analysisData) {
       try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          generationConfig: {
-            temperature: 0.2,
-            responseMimeType: "application/json",
-            maxOutputTokens: 500
-          }
+        const completion = await groq.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          temperature: 0.2,
+          messages: [
+            {
+              role: "system",
+              content: "Return only JSON output.",
+            },
+            {
+              role: "user",
+              content: `
+Return JSON:
+{
+  "summary": "string",
+  "credibilityScore": 0,
+  "clickbaitLevel": "Low | Medium | High",
+  "biasLevel": "Low | Medium | High",
+  "emotionalTone": "Neutral | Sensationalist | Fear-mongering | Angry | Optimistic",
+  "explanation": "string"
+}
+
+Title: ${title}
+Description: ${description || "N/A"}
+Source: ${source || "Unknown"}
+`,
+            },
+          ],
         });
 
-        result = await model.generateContent(prompt);
-        console.log(`Gemini success with model: ${modelName}`);
-        break;
+        let text = completion.choices[0]?.message?.content || "";
+        text = text.replace(/```/g, "").trim();
+
+        analysisData = JSON.parse(text);
+
+        console.log("✅ Groq success");
       } catch (err) {
-        console.error(`Gemini failed with ${modelName}:`, err.message);
-        lastError = err;
+        console.log("❌ Groq also failed → using fallback");
       }
     }
 
-    if (!result) throw lastError;
+    // 🔥 4. LOCAL FALLBACK (ALWAYS WORKS)
+    if (!analysisData) {
+      const lowerTitle = title.toLowerCase();
 
-    let responseText = result.response.text().trim();
+      let clickbaitLevel = "Low";
+      if (
+        lowerTitle.includes("shocking") ||
+        lowerTitle.includes("breaking")
+      ) {
+        clickbaitLevel = "High";
+      }
 
-    responseText = responseText
-      .replace(/```json/gi, "")
-      .replace(/```/g, "")
-      .trim();
-
-    let analysisData;
-
-    try {
-      analysisData = JSON.parse(responseText);
-    } catch {
-      const match = responseText.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("Invalid JSON returned by AI");
-      analysisData = JSON.parse(match[0]);
+      analysisData = {
+        summary:
+          description?.slice(0, 200) ||
+          "Basic summary unavailable from AI.",
+        credibilityScore: 60,
+        clickbaitLevel,
+        biasLevel: "Medium",
+        emotionalTone: "Neutral",
+        explanation:
+          "Fallback analysis generated locally because AI providers were unavailable.",
+      };
     }
 
     const safeResponse = {
-      summary: analysisData.summary || "No summary available.",
+      summary: analysisData.summary || "No summary",
       credibilityScore: Number(analysisData.credibilityScore) || 50,
-      clickbaitLevel: ["Low", "Medium", "High"].includes(analysisData.clickbaitLevel)
-        ? analysisData.clickbaitLevel
-        : "Medium",
-      biasLevel: ["Low", "Medium", "High"].includes(analysisData.biasLevel)
-        ? analysisData.biasLevel
-        : "Medium",
-      emotionalTone: [
-        "Neutral",
-        "Sensationalist",
-        "Fear-mongering",
-        "Angry",
-        "Optimistic"
-      ].includes(analysisData.emotionalTone)
-        ? analysisData.emotionalTone
-        : "Neutral",
-      explanation: analysisData.explanation || "No explanation provided.",
+      clickbaitLevel: analysisData.clickbaitLevel || "Medium",
+      biasLevel: analysisData.biasLevel || "Medium",
+      emotionalTone: analysisData.emotionalTone || "Neutral",
+      explanation: analysisData.explanation || "",
       aiAvailable: true,
-      cached: false
+      cached: false,
     };
 
-    // 3. SAVE TO MONGODB CACHE
+    // ✅ SAVE TO DB
     await ArticleAnalysis.create({
       articleKey,
       title,
-      source: source || "Unknown",
-      summary: safeResponse.summary,
-      credibilityScore: safeResponse.credibilityScore,
-      clickbaitLevel: safeResponse.clickbaitLevel,
-      biasLevel: safeResponse.biasLevel,
-      emotionalTone: safeResponse.emotionalTone,
-      explanation: safeResponse.explanation,
-      aiAvailable: safeResponse.aiAvailable
+      source,
+      ...safeResponse,
     });
 
     return res.status(200).json(safeResponse);
   } catch (error) {
-    console.error("AI Analysis Error:", error);
-
-    if (error.status === 429 || error.status === 404) {
-      return res.status(200).json({
-        summary: "AI analysis is temporarily unavailable due to API limits or model availability.",
-        credibilityScore: 50,
-        clickbaitLevel: "Medium",
-        biasLevel: "Medium",
-        emotionalTone: "Neutral",
-        explanation:
-          "TruthLens AI could not complete a full analysis right now. Please try again later.",
-        aiAvailable: false,
-        cached: false
-      });
-    }
+    console.error("FINAL ERROR:", error);
 
     return res.status(500).json({
-      message: "Failed to analyze article.",
-      error: error.message
+      message: "Something went wrong",
+      error: error.message,
     });
   }
 };
