@@ -10,7 +10,6 @@ import AuthGuard from "./components/AuthGuard";
 
 function App() {
   return (
-  <Router basename="/projects/truthlens">
     <div className="min-h-screen bg-slate-950 text-white">
       <Navbar />
       <Routes>
@@ -18,16 +17,13 @@ function App() {
         <Route path="/article" element={<ArticleDetails />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/saved" element={<SavedArticles />} />
         <Route path="/compare" element={<CompareNews />} />
 
         <Route element={<AuthGuard />}>
             <Route path="/saved" element={<SavedArticles />} />
-
         </Route>
       </Routes>
     </div>
-  </Router>
   );
 }
 
