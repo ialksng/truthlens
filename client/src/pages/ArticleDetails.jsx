@@ -87,7 +87,10 @@ function ArticleDetails() {
           <img
             src={article.image_url || fallbackImage}
             alt={article.title}
-            onError={(e) => (e.target.src = fallbackImage)}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = fallbackImage;
+            }}
             className="h-full w-full object-cover opacity-60 transition-transform duration-[20s] group-hover:scale-110"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />

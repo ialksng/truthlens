@@ -11,12 +11,15 @@ function NewsCard({ article }) {
 
       {/* 🖼️ Image & Overlays */}
       <div className="relative h-56 w-full shrink-0 overflow-hidden bg-slate-950">
-        <img
-          src={article.image_url || fallbackImage}
-          alt={article.title}
-          onError={(e) => (e.target.src = fallbackImage)}
-          className="h-full w-full object-cover opacity-90 transition-transform duration-1000 group-hover:scale-110 group-hover:opacity-70"
-        />
+          <img
+            src={article.image_url || fallbackImage}
+            alt={article.title}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = fallbackImage;
+            }}
+            className="h-full w-full object-cover opacity-90 transition-transform duration-1000 group-hover:scale-110 group-hover:opacity-70"
+          />
         {/* Techy Dark Gradient Fade */}
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,rgba(2,6,23,1)_100%)]" />
         {/* Subtle Cyan Tint on Hover */}
