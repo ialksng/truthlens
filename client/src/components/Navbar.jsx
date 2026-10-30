@@ -33,6 +33,18 @@ function Navbar() {
           <Link to="/compare" className={navClass("/compare")}>Compare</Link>
           <Link to="/saved" className={navClass("/saved")}>Saved</Link>
 
+          <a
+            href="https://ialksng.me"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-cyan-300 transition-all hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-[0_0_15px_rgba(34,211,238,0.25)] hover:-translate-y-0.5"
+          >
+            <span>ialksng</span>
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+
           {loggedIn ? (
             <button
               onClick={handleLogout}
