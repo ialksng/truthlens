@@ -20,6 +20,10 @@
       "destination": "/assets/$1"
     },
     {
+      "source": "/work/projects/truthlens/app/(.*\\.(?:js|css|png|jpg|jpeg|gif|svg|ico|json|woff2?))",
+      "destination": "/$1"
+    },
+    {
       "source": "/work/projects/truthlens/app/(.*)",
       "destination": "/index.html"
     },
@@ -33,4 +37,3 @@
     }
   ]
 }
-
